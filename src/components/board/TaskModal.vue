@@ -9,7 +9,7 @@
           <div class="form-group">
             <label>Título</label>
             <input
-              v-model="taskForm.time"
+              v-model="taskForm.title"
               type="text"
               placeholder="Título de la tarea"
               class="styled-input"
@@ -40,6 +40,7 @@
                 class="action-button"
                 @click="estimateTime"
                 :disabled="!taskForm.title || !taskForm.description"
+                :title="addDisabledTooltip"
               >
                 <span class="icon">✨</span>
                 Calcular con IA
@@ -79,6 +80,7 @@
                 class="action-button"
                 @click="optimizeDescription"
                 :disabled="!taskForm.description"
+                :title="addDisabledTooltip"
               >
                 <span class="icon">✨</span>
                 Optimizar con IA
@@ -133,10 +135,10 @@
 
           <ChecklistSection
             :task-id="safeTaskId"
-            :checklists="taskForm.checklists"
+            :checklist="taskForm.checklist"
             :task-title="taskForm.title"
             :task-description="taskForm.description"
-            @update:checklists="taskForm.checklists = $event"
+            @update:checklist="onChecklistUpdate"
           />
 
           <CommentSection
@@ -170,7 +172,7 @@ const props = defineProps({
   initialData: Object,
 })
 
-const emit = defineEmits(['update:modelValue', 'save'])
+const emit = defineEmits(['update:modelValue', 'save', 'update-checklist'])
 
 const defaultTaskForm = {
   title: '',
@@ -178,9 +180,9 @@ const defaultTaskForm = {
   priority: 'medium',
   dueDate: '',
   labels: [],
-  checklists: [],
+  checklist: null,
   comments: [],
-  timeEstimate: null,
+  timeEstimation: null,
   assignedMembers: [],
 }
 
@@ -297,7 +299,7 @@ const optimizeDescription = async () => {
 const estimateTime = async () => {
   if (!taskForm.value.title || !taskForm.value.description) return
   try {
-    taskForm.value.timeEstimate = await aiService.suggestTimeEstimation({
+    taskForm.value.timeEstimation = await aiService.suggestTimeEstimation({
       title: taskForm.value.title,
       description: taskForm.value.description,
     })
@@ -319,6 +321,21 @@ const saveTask = async () => {
     columnId: props.columnId,
   })
 }
+
+const onChecklistUpdate = (newChecklist) => {
+  // Clone the checklist to ensure reactivity
+  taskForm.value = {
+    ...taskForm.value,
+    checklist: newChecklist ? JSON.parse(JSON.stringify(newChecklist)) : null
+  }
+  emit('update-checklist', { id: taskForm.value.id, checklist: newChecklist });
+};
+
+const addDisabledTooltip = computed(() => {
+  return !taskForm.value.title || !taskForm.value.description
+    ? 'Primero se necesita un título y una descripción'
+    : 'Estimación de IA'
+})
 </script>
 
 <style scoped>
